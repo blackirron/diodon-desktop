@@ -20,6 +20,18 @@ BORDER = "#E5E7EB"
 TEXT = "#111827"
 MUTED = "#6B7280"
 
+WINDOW_WIDTH = 380
+WINDOW_HEIGHT = 540
+
+# There is no reliable cross-desktop API on Linux for an app to query the
+# exact pixel position of its own tray icon (AppIndicator/StatusNotifierItem
+# icons live inside the panel's own process, not a queryable window of ours).
+# Since tray icons sit top-right on GNOME and most Linux desktops, we anchor
+# the window there instead of chasing per-pixel icon coordinates. If your
+# panel is a different height, adjust TOP_PANEL_HEIGHT to match.
+TOP_PANEL_HEIGHT = 32
+RIGHT_MARGIN = 12
+
 
 class DiodonWindow:
     def __init__(self, root: tk.Tk):
@@ -28,7 +40,7 @@ class DiodonWindow:
 
         self.win = tk.Toplevel(root)
         self.win.title("Diodon")
-        self.win.geometry("380x540")
+        self.win.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
         self.win.configure(bg=BG)
         # Closing the window just hides it — the app keeps running in the tray
         self.win.protocol("WM_DELETE_WINDOW", self.hide)
@@ -43,9 +55,16 @@ class DiodonWindow:
         self._build_list_area()
         self.refresh()
 
+    def _position_near_tray(self):
+        screen_width = self.win.winfo_screenwidth()
+        x = screen_width - WINDOW_WIDTH - RIGHT_MARGIN
+        y = TOP_PANEL_HEIGHT
+        self.win.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}+{x}+{y}")
+
     # --- window visibility (called from tray thread via root.after) ---
     def show(self):
         self.refresh()
+        self._position_near_tray()
         self.win.deiconify()
         self.win.lift()
         self.win.focus_force()
